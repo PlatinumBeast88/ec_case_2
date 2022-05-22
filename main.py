@@ -72,17 +72,13 @@ def func1():
     os.startfile(str(a.get() + ".xlsx"))
 
 
-c = a.get()
-
-
 # calculations
-def func2():
-    print(c, type(c))
-    wb = op.load_workbook(str(str(c) + ".xlsx"))
+def func2(c=str(a.get())):
+    wb = op.load_workbook(str(a.get() + ".xlsx"))
     ws = wb.active
 
-    df = pd.read_excel(str(str(a.get()) + ".xlsx"), sheet_name='Values')
-    df2 = pd.read_excel(str(str(c) + ".xlsx"), sheet_name="Predictions")
+    df = pd.read_excel(str(a.get() + ".xlsx"), sheet_name='Values')
+    df2 = pd.read_excel(str(a.get() + ".xlsx"), sheet_name="Predictions")
     y = df["Y"]
     x = df.drop("Y", axis=1)
     x = sm.add_constant(x)
@@ -99,14 +95,14 @@ def func2():
 
     # a) find a regression equation of Y on Х1 and X2 and explain the meaning of regression coefficients b0, b1, b2
     pr = model.params
-    a = str(round((pr[0]), 4))
+    g = str(round((pr[0]), 4))
     for i in range(0, len(pr)):
         if pr[i] > 0:
-            a += str("+" + str(round((pr[i]), 4)) + "x" + str(i))
+            g += str("+" + str(round((pr[i]), 4)) + "x" + str(i))
         elif pr[i] < 0:
-            a += str(str(round((pr[i]), 4)) + "x" + str(i))
+            g += str(str(round((pr[i]), 4)) + "x" + str(i))
         elif pr[i] == 0:
-            a = a
+            g = g
     # print(a)
 
     # b) estimate the tightness and the direction of the relation between variables Х1, X2 and Y by computing multiple
@@ -173,12 +169,24 @@ def func2():
     conf2 = np.array([y_new - t_crit * math.sqrt(S2 * (1 + mult4)), y_new + t_crit * math.sqrt(S2 * (1 + mult4))])
 
     # h) find an interval estimator for regression coefficients β0, β1, β2
+    t_crit = np.abs(t.ppf((1 - confidence) / 2, dof))
     varb = []
-    for i in range(0, int(b.get()) + 1):
+    for i in range(0, int(b.get())+1):
         varb.append(math.sqrt(S2 * inv[i, i]))
-    print(varb)
+
+    T = []
+    for i in range(0, int(b.get())+1):
+        T.append(abs(b_array[i]) / varb[i])
+
+    conf3 = []
+    for i in range(0, int(b.get())+1):
+        conf3.append([b_array[i]-varb[i]*t_crit, b_array[i]+varb[i]*t_crit])
 
     # i) find an interval estimator for the error’s variance with 0.95 confidence
+    chi2_1 = np.abs(chi2.ppf(1 - (1 - confidence) / 2, dof))
+    chi2_2 = np.abs(chi2.ppf((1 - confidence) / 2, dof))
+    conf4 = np.array([S2 * dof / chi2_1, S2 * dof / chi2_2])
+    print(conf4)
 
 
 # buttons
