@@ -16,6 +16,9 @@ from scipy.stats import t
 from scipy.stats import f
 from scipy.stats import chi2
 
+from scipy import stats
+from scipy.stats import spearmanr
+
 import tkinter as tk
 from tkinter import *
 import os
@@ -171,22 +174,78 @@ def func2(c=str(a.get())):
     # h) find an interval estimator for regression coefficients β0, β1, β2
     t_crit = np.abs(t.ppf((1 - confidence) / 2, dof))
     varb = []
-    for i in range(0, int(b.get())+1):
+    for i in range(0, int(b.get()) + 1):
         varb.append(math.sqrt(S2 * inv[i, i]))
 
     T = []
-    for i in range(0, int(b.get())+1):
+    for i in range(0, int(b.get()) + 1):
         T.append(abs(b_array[i]) / varb[i])
 
     conf3 = []
-    for i in range(0, int(b.get())+1):
-        conf3.append([b_array[i]-varb[i]*t_crit, b_array[i]+varb[i]*t_crit])
+    for i in range(0, int(b.get()) + 1):
+        conf3.append([b_array[i] - varb[i] * t_crit, b_array[i] + varb[i] * t_crit])
 
     # i) find an interval estimator for the error’s variance with 0.95 confidence
     chi2_1 = np.abs(chi2.ppf(1 - (1 - confidence) / 2, dof))
     chi2_2 = np.abs(chi2.ppf((1 - confidence) / 2, dof))
     conf4 = np.array([S2 * dof / chi2_1, S2 * dof / chi2_2])
-    print(conf4)
+    # print(conf4)
+
+    # 2. a) apply the Spearman rank correlation test to assess heteroscedasticity at a 5% significance level for
+    # both x1 and x2
+    # s_coef = []
+    # for i in range(0, int(b.get())+1):
+    #     s_coef.append(spearmanr(x.to_numpy()[i], y.to_numpy()))
+    x_new = np.zeros([len(y), int(b.get())])
+
+    for i in range(1, int(b.get()) + 1):
+        # x_new.append(df["X" + str(i)].to_numpy)
+        x_new[:, i - 1] = df["X" + str(i)]
+    model_array = np.zeros([len(y), int(b.get())])
+    # model12 = LinearRegression().fit(x_new[:, 0].reshape(10, 1), y)
+    counter = 0
+    while counter < int(b.get()):
+        model11 = sm.OLS(y, x_new[:, counter].reshape(-1, 1)).fit()
+        # print(model11.summary())
+        # for i in range(0, int(b.get())):
+        model_array[:, counter] = model11.resid
+        counter += 1
+        # print(model_array)
+    # print(model_array[:, 1])
+    # print(model_array, '\n', x_new)
+
+    # counter = 0
+    # while counter < int(b.get()):
+    #     print(spearmanr(x_new[:, counter], model_array[:, counter]))
+    #     counter += 1
+
+    # while counter < int(b.get()):
+    #     for i in range ()
+    argsort_array = x_new[:, 0].argsort()
+    ranks_array = np.empty_like(argsort_array)
+    ranks_array[argsort_array] = np.arange(len(y))
+    duplicate_check = []
+    # for i in argsort_array:
+    #     for j in range(0, len(y)):
+    #         if argsort_array[i] == argsort_array[j]:
+    #             duplicate_check.append(i)
+    #             duplicate_check.append(j)
+    def duplicates(argsort_array):
+        return [elem in argsort_array[:i] for i, elem in enumerate(argsort_array)]
+
+
+    print(duplicate_check)
+
+    print("\nRank of each item of the said array:")
+    print(ranks_array)
+    # s_coef = np.zeros([int(b.get())])
+    # for i in range(0, int(b.get())+1):
+    #     s_coef = spearmanr(x_new[i], model_array[i])
+    # print(s_coef)
+    # y_pred_new = []
+    # for i in range(0, int(b.get())):
+    #     y_pred_new.append(model_array.predict(x_new[i]))
+    # print(y_pred_new)
 
 
 # buttons
