@@ -229,14 +229,14 @@ def func2(c=str(a.get())):
     for i in argsort_array:
         for j in range(0, len(y)):
             if i == argsort_array[j] and np.where(i) != j:
-                    duplicate_check.append(np.where(i))
-                    duplicate_check.append(j)
+                # duplicate_check.append(np.where(i))
+                duplicate_check.append(j)
     # def duplicates(argsort_array):
     #     return [elem in argsort_array[:i] for i, elem in enumerate(argsort_array)]
-    print(duplicate_check)
-
-    print("\nRank of each item of the said array:")
-    print(ranks_array)
+    # print(duplicate_check)
+    #
+    # print("\nRank of each item of the said array:")
+    # print(ranks_array)
     # s_coef = np.zeros([int(b.get())])
     # for i in range(0, int(b.get())+1):
     #     s_coef = spearmanr(x_new[i], model_array[i])
@@ -249,9 +249,9 @@ def func2(c=str(a.get())):
     # b) apply the Goldfeld-Quandt test to assess heteroscedasticity at a 5% significance level for both x1 and x2
     S2_array = []
     for i in range(0, int(b.get())):
-        S2_array.append(sum(model_array[:, i]**2)/dof)
+        S2_array.append(sum(model_array[:, i] ** 2) / dof)
     # print(S2_array)
-    F_obs_gold = S2_array[0]/S2_array[1]
+    F_obs_gold = S2_array[0] / S2_array[1]
     F_crit_gold = np.abs(f.ppf(confidence, dof, dof))
     # print("F-crit =", F_crit_gold, "F-obs =", F_obs_gold)
 
@@ -281,7 +281,7 @@ def func2(c=str(a.get())):
     for i in range(1, int(b.get()) + 1):
         x_hyp[:, i - 1] = df["X" + str(i)]
     for i in range(0, len(y)):
-        x_hyp[i] = 1/x_hyp[i]
+        x_hyp[i] = 1 / x_hyp[i]
     x_hyp = sm.add_constant(x_hyp)
     model_hyperbola = sm.OLS(y, x_hyp).fit()
 
@@ -326,9 +326,9 @@ def func2(c=str(a.get())):
     # print("semi-logarithmic model:", g4)
 
     # e) the inverse function у = 1 / (β0 + β1x1 + β2x2 + ε);
-    y_hyp = np.zeros([len(y), int(b.get())])
-    for i in range(1, 2):
-        y_hyp = df['Y']
+    y_hyp = []
+    for i in range(0, len(y)):
+        y_hyp.append(y[i])
     for i in range(0, len(y)):
         y_hyp[i] = 1 / y_hyp[i]
     model_inv = sm.OLS(y_hyp, x).fit()
@@ -385,11 +385,142 @@ def func2(c=str(a.get())):
 
     # print("exponential model 2:", g7)
 
-    # h) estimate for each of the models the determination coefficient, the average error ap-proximation, and choose
+    # h) estimate for each of the models the determination coefficient, the average error approximation, and choose
     # the best model.
 
+    # 4. 3. According to the table for the time series уt:
+    # a) find the equation of the non-random component (trend), assuming the trend is linear;
+    index_array = []
+    for i in range(0, len(y)):
+        index_array.append(i + 1)
 
-    # buttons
+    model_lt = sm.OLS(y.to_numpy(), sm.add_constant(index_array)).fit()
+    # print(model_lt.params, model_lt.rsquared)
+
+    # b) identify, at the significance level 0.05, the presence of autocorrelation of errors using the Durbin-Watson
+    # criterion;
+    errors = np.zeros([len(y)])
+    for i in range(0, len(y)):
+        errors[i] = y[i] - model_lt.predict()[i]
+
+    errors2 = np.zeros([len(y)])
+    for i in range(0, len(y)):
+        errors2[i] = errors[i] ** 2
+
+    errorst = np.zeros([len(y)])
+    errorst[0] = 0
+    for i in range(1, len(y)):
+        errorst[i] = errors[i - 1]
+
+    errors_num = np.zeros([len(y)])
+    for i in range(0, len(y)):
+        errors_num[i] = (errors[i] - errorst[i]) ** 2
+    errors_num[0] = 0
+
+    durb_wats = sum(errors_num) / sum(errors2)
+    # print(durb_wats)
+
+    # print(sm.stats.stattools.durbin_watson(model_lt.resid, axis=0))
+
+    # c) find, with confidence 0.95, an interval estimate of the true variance of errors, assuming the trend is linear;
+    chi2_11 = np.abs(chi2.ppf(1 - (1 - confidence) / 2, len(y) - 2))
+    chi2_22 = np.abs(chi2.ppf((1 - confidence) / 2, len(y) - 2))
+    RSS_array = np.subtract(y, model_lt.predict())
+    RSS = np.sum([i ** 2 for i in RSS_array])
+    ss2 = RSS / (len(y) - 2)
+    conf_linear = np.array([ss2 * (len(y) - 2) / chi2_11, ss2 * (len(y) - 2) / chi2_22])
+
+    # print(conf_linear)
+
+    # d) find the autocorrelation coefficient (for the lag τ=1,2,3);
+    lag_2 = np.zeros([len(y)])
+    lag_2[0] = 0
+    for i in range(1, len(y)):
+        lag_2[i] = errorst[i - 1]
+
+    lag_3 = np.zeros([len(y)])
+    lag_3[0] = 0
+    for i in range(1, len(y)):
+        lag_3[i] = lag_2[i - 1]
+    # print(errors)
+    # print(errorst)
+    # print(lag_2)
+    # print(lag_3)
+    # print(np.corrcoef(errors, errorst)[0, 1], np.corrcoef(errors, lag_2)[1, 0], np.corrcoef(errors, lag_3)[1, 0])
+    errors_br = [(i - errors.mean()) for i in errors]
+    errors_br2 = np.sum([(i - errors.mean()) ** 2 for i in errors])
+    errorst_br = [(i - errorst.mean()) for i in errorst]
+    errorst_br2 = np.sum([(i - errorst.mean()) ** 2 for i in errorst])
+    lag_2_br = [(i - lag_2.mean()) for i in lag_2]
+    lag_2_br2 = np.sum([(i - lag_2.mean()) ** 2 for i in lag_2])
+    lag_3_br = [(i - lag_3.mean()) for i in lag_3]
+    lag_3_br2 = np.sum([(i - lag_3.mean()) ** 2 for i in lag_3])
+    correl_1 = np.sum(np.multiply(errors_br, errorst_br)) / math.sqrt(errors_br2 * errorst_br2)
+    correl_2 = np.sum(np.multiply(errors_br, lag_2_br)) / math.sqrt(errors_br2 * lag_2_br2)
+    correl_3 = np.sum(np.multiply(errors_br, lag_3_br)) / math.sqrt(errors_br2 * lag_3_br2)
+    # print(correl_2, correl_3, "ya hochoo plakat")
+
+    # e) find, with confidence 0.95, an interval estimation of the regression coefficient β1, assuming the trend is
+    # linear;
+    # y_lin = []
+    # for i in range(0, len(y)):
+    #     y_lin.append(y[i])
+    # for i in y_lin:
+    #     y_lin[i] = y[i]
+    # y_lin = sm.add_constant(y_lin)
+    # y_lint = np.matrix.transpose(y_lin)
+    # mult1_y = np.dot(y_lint, y_lin)
+    # inv_y = np.linalg.inv(mult1_y)
+    # print(inv_y)
+    index_arr = sm.add_constant(index_array)
+    index_arrayt = np.matrix.transpose(index_arr)
+    mult1_y = np.dot(index_arrayt, index_arr)
+    inv_y = np.linalg.inv(mult1_y)
+
+    varb0_y = math.sqrt(ss2 * inv_y[0, 0])
+    varb1_y = math.sqrt(ss2 * inv_y[1, 1])
+
+    t_crit_y = np.abs(t.ppf((1 - confidence) / 2, len(y) - 2))
+
+    confb0_y = np.array([model_lt.params[0] - t_crit_y * varb0_y, model_lt.params[0] + t_crit_y * varb0_y])
+    confb1_y = np.array([model_lt.params[1] - t_crit_y * varb1_y, model_lt.params[1] + t_crit_y * varb1_y])
+
+    # print(confb0_y, confb1_y)
+
+    # f) evaluate with confidence 0.95 the significance of the pair regression coefficient using the t-test, assuming
+    # the trend is linear;
+
+    T0_y = abs(model_lt.params[0]) / varb0_y
+    T1_y = abs(model_lt.params[1]) / varb1_y
+
+    # print("t crit:", t_crit_y, "T0:", T0_y, "T1:", T1_y)
+
+    # g) find a point estimate and with the confidence of 0.95 interval estimation of the forecast of the average
+    # (individual) value of the company’s profit at the time t = 11 (eleventh year), assuming the trend is linear;
+    index_array_n = np.array([1, 11])
+    y_lin_n = model_lt.predict(index_array_n)
+
+    mult2_y = np.dot(np.matrix.transpose(index_array_n), inv_y)
+    mult3_y = np.dot(mult2_y, index_array_n)
+
+    conf1_y = np.array([y_lin_n[0] - t_crit_y * math.sqrt(ss2 * mult3_y),
+                        y_lin_n[0] + t_crit_y * math.sqrt(ss2 * mult3_y)])
+    conf2_y = np.array([y_lin_n[0] - t_crit_y * math.sqrt(ss2 * (1 + mult3_y)),
+                        y_lin_n[0] + t_crit_y * math.sqrt(ss2 * (1 + mult3_y))])
+    # print(conf1_y, conf2_y)
+
+    # h) check with the confidence of 0.95 the significance of pair regression using the F-test, assuming the trend
+    # is linear.
+    y_pred_lin = model_lt.predict()
+    ESS_y = np.sum([(i - y.to_numpy().mean()) ** 2 for i in y_pred_lin])
+
+    f_crit_y = np.abs(f.ppf(confidence, 1, len(y)-2))
+    F_y = (ESS_y / 1) / (RSS / (len(y)-2))
+
+    # print("f crit:", f_crit_y, "F:", F_y)
+
+
+# buttons
 new_excel = Button(tsk, text="Create an excel file", command=func1)
 new_excel.place(x=160, y=90)
 
