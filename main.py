@@ -106,7 +106,7 @@ def func2(c=str(a.get())):
             g += str(str(round((pr[i]), 4)) + "x" + str(i))
         elif pr[i] == 0:
             g = g
-    # print(a)
+    # print(g)
 
     # b) estimate the tightness and the direction of the relation between variables Х1, X2 and Y by computing multiple
     # correlation coefficient
@@ -206,12 +206,13 @@ def func2(c=str(a.get())):
     counter = 0
     while counter < int(b.get()):
         model11 = sm.OLS(y, x_new[:, counter].reshape(-1, 1)).fit()
+        # np.concatenate!!!!!!!!!!
         # print(model11.summary())
         # for i in range(0, int(b.get())):
         model_array[:, counter] = model11.resid
         counter += 1
         # print(model_array)
-    # print(model_array[:, 1])
+    # print(model_array[:, 0], model_array[:, 1])
     # print(model_array, '\n', x_new)
 
     # counter = 0
@@ -225,15 +226,13 @@ def func2(c=str(a.get())):
     ranks_array = np.empty_like(argsort_array)
     ranks_array[argsort_array] = np.arange(len(y))
     duplicate_check = []
-    # for i in argsort_array:
-    #     for j in range(0, len(y)):
-    #         if argsort_array[i] == argsort_array[j]:
-    #             duplicate_check.append(i)
-    #             duplicate_check.append(j)
-    def duplicates(argsort_array):
-        return [elem in argsort_array[:i] for i, elem in enumerate(argsort_array)]
-
-
+    for i in argsort_array:
+        for j in range(0, len(y)):
+            if i == argsort_array[j] and np.where(i) != j:
+                    duplicate_check.append(np.where(i))
+                    duplicate_check.append(j)
+    # def duplicates(argsort_array):
+    #     return [elem in argsort_array[:i] for i, elem in enumerate(argsort_array)]
     print(duplicate_check)
 
     print("\nRank of each item of the said array:")
@@ -247,8 +246,150 @@ def func2(c=str(a.get())):
     #     y_pred_new.append(model_array.predict(x_new[i]))
     # print(y_pred_new)
 
+    # b) apply the Goldfeld-Quandt test to assess heteroscedasticity at a 5% significance level for both x1 and x2
+    S2_array = []
+    for i in range(0, int(b.get())):
+        S2_array.append(sum(model_array[:, i]**2)/dof)
+    # print(S2_array)
+    F_obs_gold = S2_array[0]/S2_array[1]
+    F_crit_gold = np.abs(f.ppf(confidence, dof, dof))
+    # print("F-crit =", F_crit_gold, "F-obs =", F_obs_gold)
 
-# buttons
+    # 3. a) According to the table, construct an empirical regression equation for: a) the power function у=β0*x_1
+    # ^(β_1 )*x_2^(β_2 )*ε
+    x_ln = np.log(x_new)
+    x_ln = sm.add_constant(x_ln)
+    y_ln = np.log(y.to_numpy())
+    model_power = sm.OLS(y_ln, x_ln).fit()
+
+    pr_power = model_power.params
+    pr_power[0] = math.exp(pr_power[0])
+    g1 = str(round((pr_power[0]), 4))
+    for i in range(1, len(pr_power)):
+        if pr_power[i] > 0:
+            g1 += str("*" + "x" + str(i) + "^" + str(round((pr_power[i]), 4)))
+        elif pr_power[i] < 0:
+            g1 += str("*" + "x" + str(i) + "^(" + str(round((pr_power[i]), 4)) + ")")
+        elif pr_power[i] == 0:
+            g1 = g1
+
+    # print("power model:", g1)
+
+    # b) the equilateral hyperbola у = β0 + β1 / x1 + β2 / x2 + ε
+    x_hyp = np.zeros([len(y), int(b.get())])
+
+    for i in range(1, int(b.get()) + 1):
+        x_hyp[:, i - 1] = df["X" + str(i)]
+    for i in range(0, len(y)):
+        x_hyp[i] = 1/x_hyp[i]
+    x_hyp = sm.add_constant(x_hyp)
+    model_hyperbola = sm.OLS(y, x_hyp).fit()
+
+    pr_hyp = model_hyperbola.params
+    g2 = str(round((pr_hyp[0]), 4))
+    for i in range(1, len(pr_hyp)):
+        if pr_hyp[i] > 0:
+            g2 += str("+", str(round((pr_hyp[i]), 4)) + "/" + "x" + str(i))
+        elif pr_hyp[i] < 0:
+            g2 += str(str(round((pr_hyp[i]), 4)) + "/" + "x" + str(i))
+        elif pr_hyp[i] == 0:
+            g2 = g2
+
+    # print("hyperbolic:", g2)
+
+    # c) the exponential function у = β0 * е ^ (β_1 x_1+β_2 x_2) * ε;
+    model_exp = sm.OLS(y_ln, x).fit()
+    pr_exp1 = model_exp.params
+    pr_exp1[0] = math.exp(pr_exp1[0])
+    g3 = str(round((pr_exp1[0]), 4)) + "e^("
+    for i in range(1, len(pr_exp1)):
+        if pr_exp1[i] > 0:
+            g3 += str("+" + str(round((pr_exp1[i]), 4)) + "x" + str(i))
+        elif pr_exp1[i] < 0:
+            g3 += str(str(round((pr_exp1[i]), 4)) + "x" + str(i))
+        elif pr_exp1[i] == 0:
+            g3 = g3
+    g3 = g3 + ")"
+    # print("exponential model 1:", g3)
+
+    # d) the semi - logarithmic function у = β 0 + β1lnx1 + β2lnx2 + ε;
+    model_log = sm.OLS(y, x_ln).fit()
+    pr_log = model_log.params
+    g4 = str(round((pr_log[0]), 4))
+    for i in range(1, len(pr_log)):
+        if pr_log[i] > 0:
+            g4 += str("+" + str(round((pr_log[i]), 4)) + "lnx" + str(i))
+        elif pr_log[i] < 0:
+            g4 += str(str(round((pr_log[i]), 4)) + "lnx" + str(i))
+        elif pr_log[i] == 0:
+            g4 = g4
+    # print("semi-logarithmic model:", g4)
+
+    # e) the inverse function у = 1 / (β0 + β1x1 + β2x2 + ε);
+    y_hyp = np.zeros([len(y), int(b.get())])
+    for i in range(1, 2):
+        y_hyp = df['Y']
+    for i in range(0, len(y)):
+        y_hyp[i] = 1 / y_hyp[i]
+    model_inv = sm.OLS(y_hyp, x).fit()
+
+    pr_inv = model_inv.params
+    g5 = "1/(" + str(round((pr_inv[0]), 4))
+    for i in range(1, len(pr_inv)):
+        if pr_inv[i] > 0:
+            g5 += str("+" + str(round((pr_inv[i]), 4)) + "x" + str(i))
+        elif pr_inv[i] < 0:
+            g5 += str(str(round((pr_inv[i]), 4)) + "x" + str(i))
+        elif pr_inv[i] == 0:
+            g5 = g5
+    g5 = g5 + ")"
+
+    # print("inverse model:", g5)
+
+    # f) the function у = β0 + β1√(x_1) + β2√(x_2) + ε;
+    x_sqrt = np.zeros([len(y), int(b.get())])
+    for i in range(1, int(b.get()) + 1):
+        x_sqrt[:, i - 1] = df["X" + str(i)]
+    for i in range(0, len(y)):
+        for j in range(0, int(b.get())):
+            x_sqrt[i, j] = math.sqrt(x_sqrt[i, j])
+    x_sqrt = sm.add_constant(x_sqrt)
+    model_sqrt = sm.OLS(y, x_sqrt).fit()
+
+    pr_sqrt = model_sqrt.params
+    # print(pr_sqrt)
+    g6 = str(round((pr_sqrt[0]), 4))
+    for i in range(1, len(pr_sqrt)):
+        if pr_sqrt[i] > 0:
+            g6 += str("+" + str(round((pr_sqrt[i]), 4)) + "sqrt(x" + str(i) + ")")
+        elif pr_sqrt[i] < 0:
+            g6 += str(str(round((pr_sqrt[i]), 4)) + "sqrt(x" + str(i) + ")")
+        elif pr_sqrt[i] == 0:
+            g6 = g6
+    g6 = g6 + ")"
+
+    # print("sqrt model:", g6)
+
+    # g) the exponential function у = β0β_1 ^ (x_1) β_2 ^ (x_2) * ε;
+    pr_exp2 = sm.OLS(y_ln, x).fit().params
+    for i in range(0, len(pr_exp2)):
+        pr_exp2[i] = math.exp(pr_exp2[i])
+    g7 = str(round((pr_exp2[0]), 4))
+    for i in range(1, len(pr_exp2)):
+        if pr_exp2[i] > 0:
+            g7 += str("*" + str(round((pr_exp2[i]), 4)) + "^x" + str(i))
+        elif pr_exp2[i] < 0:
+            g7 += str("*" + "(" + str(round((pr_exp2[i]), 4)) + ")^x" + str(i))
+        elif pr_exp2[i] == 0:
+            g7 = g7
+
+    # print("exponential model 2:", g7)
+
+    # h) estimate for each of the models the determination coefficient, the average error ap-proximation, and choose
+    # the best model.
+
+
+    # buttons
 new_excel = Button(tsk, text="Create an excel file", command=func1)
 new_excel.place(x=160, y=90)
 
