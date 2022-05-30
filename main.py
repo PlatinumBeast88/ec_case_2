@@ -196,64 +196,65 @@ def func2(c=str(a.get())):
     # s_coef = []
     # for i in range(0, int(b.get())+1):
     #     s_coef.append(spearmanr(x.to_numpy()[i], y.to_numpy()))
+
     x_new = np.zeros([len(y), int(b.get())])
-
     for i in range(1, int(b.get()) + 1):
-        # x_new.append(df["X" + str(i)].to_numpy)
         x_new[:, i - 1] = df["X" + str(i)]
-    model_array = np.zeros([len(y), int(b.get())])
-    # model12 = LinearRegression().fit(x_new[:, 0].reshape(10, 1), y)
+
+    residuals_array = np.zeros([len(y), int(b.get())])
     counter = 0
+    err = []
     while counter < int(b.get()):
-        model11 = sm.OLS(y, x_new[:, counter].reshape(-1, 1)).fit()
-        # np.concatenate!!!!!!!!!!
-        # print(model11.summary())
-        # for i in range(0, int(b.get())):
-        model_array[:, counter] = model11.resid
+        model11 = sm.OLS(y, sm.add_constant(x_new[:, counter].reshape(-1, 1))).fit()
+        err.append((np.subtract(model11.predict(), y))**2)
         counter += 1
-        # print(model_array)
-    # print(model_array[:, 0], model_array[:, 1])
-    # print(model_array, '\n', x_new)
+    # print(err)
 
-    # counter = 0
-    # while counter < int(b.get()):
-    #     print(spearmanr(x_new[:, counter], model_array[:, counter]))
-    #     counter += 1
+    x_ranks = []
+    for i in range(1, int(b.get()) + 1):
+        x_ranks.append(df['X' + str(i)].rank().to_numpy())
+    # print(x_ranks)
 
-    # while counter < int(b.get()):
-    #     for i in range ()
-    argsort_array = x_new[:, 0].argsort()
-    ranks_array = np.empty_like(argsort_array)
-    ranks_array[argsort_array] = np.arange(len(y))
-    duplicate_check = []
-    for i in argsort_array:
-        for j in range(0, len(y)):
-            if i == argsort_array[j] and np.where(i) != j:
-                # duplicate_check.append(np.where(i))
-                duplicate_check.append(j)
-    # def duplicates(argsort_array):
-    #     return [elem in argsort_array[:i] for i, elem in enumerate(argsort_array)]
-    # print(duplicate_check)
-    #
-    # print("\nRank of each item of the said array:")
-    # print(ranks_array)
-    # s_coef = np.zeros([int(b.get())])
-    # for i in range(0, int(b.get())+1):
-    #     s_coef = spearmanr(x_new[i], model_array[i])
-    # print(s_coef)
-    # y_pred_new = []
+    err_ranks = []
+    for i in range(0, int(b.get())):
+        err_df = round(pd.DataFrame(err[i]), 10)
+        err_ranks.append(err_df.rank().to_numpy())
+    # print(err_ranks)
+
+    d_y = []
+    for i in range(0, int(b.get())):
+        d_y.append(np.subtract(x_ranks[i], np.concatenate(err_ranks[i], axis=None))**2)
+    # print(d_y)
+
+    # more accurate result, but..
+    # s_coef = []
     # for i in range(0, int(b.get())):
-    #     y_pred_new.append(model_array.predict(x_new[i]))
-    # print(y_pred_new)
+    #     s_coef.append(spearmanr(x_new[:, i], err[i]))
+    # print(s_coef)
+
+    r_xe = []
+    for i in range(0, int(b.get())):
+        r_xe.append((1-6*sum(d_y[i])/(len(y)*(len(y)**2-1))))
+    # print(r_xe)
+
+    t_obs_xe = []
+    for i in range(0, int(b.get())):
+        t_obs_xe.append(r_xe[i]*math.sqrt(len(y)-2)/math.sqrt(1-r_xe[i]**2))
+    # print(t_obs_xe)
 
     # b) apply the Goldfeld-Quandt test to assess heteroscedasticity at a 5% significance level for both x1 and x2
     S2_array = []
     for i in range(0, int(b.get())):
-        S2_array.append(sum(model_array[:, i] ** 2) / dof)
+        S2_array.append(sum(err[i] ** 2) / dof)
     # print(S2_array)
-    F_obs_gold = S2_array[0] / S2_array[1]
+    F_obs_gold = []
+    for i in range(len(S2_array)):
+        for j in range(len(S2_array)):
+            if j > i:
+                F_obs_gold.append(S2_array[j]/S2_array[i])
+    # F_obs_gold = S2_array[0] / S2_array[1]
     F_crit_gold = np.abs(f.ppf(confidence, dof, dof))
-    # print("F-crit =", F_crit_gold, "F-obs =", F_obs_gold)
+    print("F-crit =", F_crit_gold, "F-obs =", F_obs_gold)
 
     # 3. a) According to the table, construct an empirical regression equation for: a) the power function у=β0*x_1
     # ^(β_1 )*x_2^(β_2 )*ε
@@ -518,6 +519,7 @@ def func2(c=str(a.get())):
     F_y = (ESS_y / 1) / (RSS / (len(y)-2))
 
     # print("f crit:", f_crit_y, "F:", F_y)
+    print("Hello Kotopezz!")
 
 
 # buttons
