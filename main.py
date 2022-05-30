@@ -519,7 +519,6 @@ def func2(c=str(a.get())):
     F_y = (ESS_y / 1) / (RSS / (len(y)-2))
 
     # print("f crit:", f_crit_y, "F:", F_y)
-    print("Hello Kotopezz!")
 
 
 # buttons
