@@ -142,7 +142,6 @@ def multiple_dfs(df_list, sheets, file_name, spaces):
         dataframe.to_excel(writer, sheet_name=sheets, startrow=row, startcol=0, index=False, header=False)
         row = row + len(dataframe.index) + spaces + 1
     writer.save()
-    return None
 
 
 def func2():
@@ -182,6 +181,15 @@ def func2():
     r2 = model_sk.score(x, y)
     r = math.sqrt(r2)
 
+    if abs(r) > 0.9:
+        res1 = "strong connection of arguments and y"
+    else:
+        res1 = "weak connection of arguments and y"
+    if r > 0:
+        res2 = "the variables are mutually directed"
+    else:
+        res2 = "the variables are oppositely directed"
+
     # print(r)
     # print(corr)
     # plt.show()
@@ -189,6 +197,11 @@ def func2():
     # c) estimate the significance of the regression equation of Y on Х1, X2 by F-statistics at level α=0.05
     f_crit = np.abs(f.ppf(confidence, p, dof))
     F = (r2 / (1 - r2)) * (dof / p)
+
+    if F < f_crit:
+        res3 = "null hypothesis (variance x = variance y) is accepted; arguments influence is not significant"
+    else:
+        res3 = "null hypothesis (variance x = variance y) is rejected; arguments influence not significant"
 
     # d) estimate the significance of regression coefficients b0, b1, b2 by t-statistics at level α=0.05
     t_crit = np.abs(t.ppf((1 - confidence) / 2, dof))
@@ -201,6 +214,14 @@ def func2():
     mult2 = np.dot(inv, xt)
 
     b_array = np.dot(mult2, y)
+
+    res4 = []
+    for i in range(0, len(b_array)):
+        if b_array[i] < t_crit:
+            res4.append(f"null hypothesis (β{i} = 0) is accepted")
+        else:
+            res4.append(f"null hypothesis (β{i} = 0) is rejected")
+    # print(b_array)
 
     # e) find determination coefficient and explain its meaning
     r2 = model_sk.score(x, y)
@@ -238,19 +259,23 @@ def func2():
     # print(conf4)
 
     df3 = pd.DataFrame()
-    df3.insert(0, 'a', ["a) Regression equation:", g, None, "b) Correlation coefficient:", r, "Correlation matrix:"])
-    # df3 = df3.append({'abc': "a) Regression equation:"}, ignore_index=True)
-    # df3 = df3.append({'abc': g}, ignore_index=True)
-    # df3 = df3.append({'abc': None}, ignore_index=True)
-    # df3 = df3.append({'abc': "b) Correlation coefficient:"}, ignore_index=True)
-    # df3 = df3.append({'abc': r}, ignore_index=True)
-    # df3 = df3.append({'abc': "Correlation matrix:"}, ignore_index=True)
-    # df3 = df3.append({'abc': corr}, ignore_index=True)
+    df3.insert(0, 'a', ["a) Regression equation:", g, None, "b) Correlation coefficient:", r, res1, res2,
+                        "Correlation matrix:"])
     df4 = pd.DataFrame(corr)
-    # df3.to_excel(sh3, startrow=len(df4)+1, startcol=0)
-    # df3.to_excel(filename="adad.xlsx", sheet_name='Results', startrow=len(df4)+1, startcol=0)
-    df_list = [df3, df4]
-    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=1)
+    df5 = pd.DataFrame()
+    df5.insert(0, 'a', ["c) F-statistics:", "F critical =", "F observed =", None])
+    df5.insert(1, 'b', [None, f_crit, F, res3])
+    df6 = pd.DataFrame()
+    df6.insert(0, 'a', ["d) T-statistics:"])
+    df6.insert(1, 'b', [None])
+    for i in range(0, len(b_array)):
+        df6.append({'a': f"T{i} observed ="}, ignore_index=True)
+        df6.append({'a': None}, ignore_index=True)
+        df6.append({'b': b_array[i]}, ignore_index=True)
+        df6.append({'b': res4[i]}, ignore_index=True)
+    df_list = [df3, df4, df5, '\n', df6]
+    print(df_list)
+    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=0)
 
     # Creating Excel Writer Object from Pandas
 
@@ -260,8 +285,6 @@ def func2():
     # writer.sheets['Validation'] = worksheet
     # df3.to_excel(writer, index=False, header=False, startrow=0, startcol=0)
     # df4.to_excel(writer, index=False, header=False, startrow=len(df3)+1, startcol=0)
-
-    print(df3, '\n', df4)
 
     # 2. a) apply the Spearman rank correlation test to assess heteroscedasticity at a 5% significance level for
     counter = 0
