@@ -33,12 +33,12 @@ tsk.configure(bg='lightgray')
 lab_1 = Label(tsk, text="Enter your excel file name")
 lab_1.place(x=10, y=30)
 a = Entry(tsk)
-a.place(x=180, y=30)
+a.place(x=240, y=30)
 
 lab_2 = Label(tsk, text="Enter the number of independent variables")
 lab_2.place(x=10, y=60)
 b = Entry(tsk)
-b.place(x=180, y=60)
+b.place(x=240, y=60)
 b.get()
 
 lab_3 = Label(tsk, text="After saving your values to the excel file, please, push the next button")
@@ -58,17 +58,46 @@ def func1():
     ws1.title = "Predictions"
     sh2 = wb["Predictions"]
 
+    ws1 = wb.create_sheet("Results", 2)
+    ws1.title = "Results"
+    sh3 = wb["Results"]
+
+    ws1 = wb.create_sheet("Models comparison", 3)
+    ws1.title = "Models comparison"
+    sh4 = wb["Models comparison"]
+
+    ws1 = wb.create_sheet("Linear trend", 4)
+    ws1.title = "Linear trend"
+    sh5 = wb["Linear trend"]
+
     wb.save(filename=str(a.get() + ".xlsx"))
 
-    ws.cell(column=1, row=1).value = "Y"
+    sh1.cell(column=1, row=1).value = "Put your data in here, rectangular form, save the file, and exit"
+
+    sh1.cell(column=1, row=2).value = "Y"
 
     for i in range(1, int(b.get()) + 1):
-        sh1.cell(column=1 + i, row=1).value = "X" + str(i)
+        sh1.cell(column=1 + i, row=2).value = "X" + str(i)
 
-    sh2.cell(column=1, row=1).value = "Y"
+    sh2.cell(column=1, row=1).value = 'Place expected values of indeces for linear trend, Y1 will adjust after ' \
+                                      'clicking "Linear Trend" button '
+    sh2.cell(column=4, row=1).value = 'Place expected values of arguments for regression model analysis, Y will ' \
+                                      'adjust after clicking "The next button" '
+
+    sh2.cell(column=1, row=2).value = "INDEX"
+    sh2.cell(column=2, row=2).value = "Y1"
+
+    sh2.cell(column=4, row=2).value = "Y"
 
     for i in range(1, int(b.get()) + 1):
-        sh2.cell(column=1 + i, row=1).value = "X" + str(i)
+        sh2.cell(column=4 + i, row=2).value = "X" + str(i)
+
+    sh3.cell(column=1, row=1).value = 'Results of multiple regression analysis will appear here after clicking ' \
+                                      '"Multiple Regression Analysis"'
+
+    sh4.cell(column=1, row=1).value = 'Models comparison will appear here after clicking "Models Comparison"'
+
+    sh5.cell(column=1, row=1).value = 'Results on linear trend analysis will appear here after clicking "Linear Trend"'
 
     wb.save(filename=str(a.get() + ".xlsx"))
 
@@ -76,25 +105,36 @@ def func1():
 
 
 # calculations
-def func2(c=str(a.get())):
+def func0():
     wb = op.load_workbook(str(a.get() + ".xlsx"))
     ws = wb.active
 
-    df = pd.read_excel(str(a.get() + ".xlsx"), sheet_name='Values')
-    df2 = pd.read_excel(str(a.get() + ".xlsx"), sheet_name="Predictions")
+    df = pd.read_excel(str(a.get() + ".xlsx"), sheet_name='Values', header=1)
+    df2 = pd.read_excel(str(a.get() + ".xlsx"), sheet_name="Predictions", header=1)
     y = df["Y"]
     x = df.drop("Y", axis=1)
     x = sm.add_constant(x)
-    x_pred = df2.drop("Y", axis=1)
+    x_pred = df2.drop(df2.columns[[0, 1, 2, 3]], axis=1)
     x_pred = sm.add_constant(x_pred, has_constant='add')
     model = sm.OLS(y, x).fit()
     model_sk = LinearRegression().fit(x, y)
     y_pred = model.predict()
     y_av = statistics.mean(y)
-    # x_np, y_np = np.array(x), np.array(y)
+    p = int(b.get())
+    dof = len(y) - p - 1
+    # alpha = float(c.get())
+    # confidence = 1 - alpha
+    confidence = 0.95
 
-    # print(model.summary())
-    # print(model.params)
+    x_new = np.zeros([len(y), int(b.get())])
+    for i in range(1, int(b.get()) + 1):
+        x_new[:, i - 1] = df["X" + str(i)]
+    # x_np, y_np = np.array(x), np.array(y)
+    return df, df2, y, x, x_pred, model, model_sk, y_pred, y_av, p, dof, confidence, x_new
+
+
+def func2():
+    df, df2, y, x, x_pred, model, model_sk, y_pred, y_av, p, dof, confidence, x_new = func0()
 
     # a) find a regression equation of Y on Х1 and X2 and explain the meaning of regression coefficients b0, b1, b2
     pr = model.params
@@ -135,12 +175,6 @@ def func2(c=str(a.get())):
     # plt.show()
 
     # c) estimate the significance of the regression equation of Y on Х1, X2 by F-statistics at level α=0.05
-    p = int(b.get())
-    dof = len(y) - p - 1
-    # alpha = float(c.get())
-    # confidence = 1 - alpha
-    confidence = 0.95
-
     f_crit = np.abs(f.ppf(confidence, p, dof))
     F = (r2 / (1 - r2)) * (dof / p)
 
@@ -191,22 +225,26 @@ def func2(c=str(a.get())):
     conf4 = np.array([S2 * dof / chi2_1, S2 * dof / chi2_2])
     # print(conf4)
 
+    df3 = pd.DataFrame()
+    df3.insert(0, 'a', ["a) Regression equation:", g, None, "b) Correlation coefficient:", r, "Correlation matrix:"])
+    # df3 = df3.append({'abc': "a) Regression equation:"}, ignore_index=True)
+    # df3 = df3.append({'abc': g}, ignore_index=True)
+    # df3 = df3.append({'abc': None}, ignore_index=True)
+    # df3 = df3.append({'abc': "b) Correlation coefficient:"}, ignore_index=True)
+    # df3 = df3.append({'abc': r}, ignore_index=True)
+    # df3 = df3.append({'abc': "Correlation matrix:"}, ignore_index=True)
+    # df3 = df3.append({'abc': corr}, ignore_index=True)
+    df4 = pd.DataFrame(corr)
+    print(len(df4)+1)
+    # df3.to_excel(sh3, startrow=len(df4)+1, startcol=0)
+    print(df3, '\n', df4)
+
     # 2. a) apply the Spearman rank correlation test to assess heteroscedasticity at a 5% significance level for
-    # both x1 and x2
-    # s_coef = []
-    # for i in range(0, int(b.get())+1):
-    #     s_coef.append(spearmanr(x.to_numpy()[i], y.to_numpy()))
-
-    x_new = np.zeros([len(y), int(b.get())])
-    for i in range(1, int(b.get()) + 1):
-        x_new[:, i - 1] = df["X" + str(i)]
-
-    residuals_array = np.zeros([len(y), int(b.get())])
     counter = 0
     err = []
     while counter < int(b.get()):
         model11 = sm.OLS(y, sm.add_constant(x_new[:, counter].reshape(-1, 1))).fit()
-        err.append((np.subtract(model11.predict(), y))**2)
+        err.append((np.subtract(model11.predict(), y)) ** 2)
         counter += 1
     # print(err)
 
@@ -223,7 +261,7 @@ def func2(c=str(a.get())):
 
     d_y = []
     for i in range(0, int(b.get())):
-        d_y.append(np.subtract(x_ranks[i], np.concatenate(err_ranks[i], axis=None))**2)
+        d_y.append(np.subtract(x_ranks[i], np.concatenate(err_ranks[i], axis=None)) ** 2)
     # print(d_y)
 
     # more accurate result, but..
@@ -234,12 +272,12 @@ def func2(c=str(a.get())):
 
     r_xe = []
     for i in range(0, int(b.get())):
-        r_xe.append((1-6*sum(d_y[i])/(len(y)*(len(y)**2-1))))
+        r_xe.append((1 - 6 * sum(d_y[i]) / (len(y) * (len(y) ** 2 - 1))))
     # print(r_xe)
 
     t_obs_xe = []
     for i in range(0, int(b.get())):
-        t_obs_xe.append(r_xe[i]*math.sqrt(len(y)-2)/math.sqrt(1-r_xe[i]**2))
+        t_obs_xe.append(r_xe[i] * math.sqrt(len(y) - 2) / math.sqrt(1 - r_xe[i] ** 2))
     # print(t_obs_xe)
 
     # b) apply the Goldfeld-Quandt test to assess heteroscedasticity at a 5% significance level for both x1 and x2
@@ -251,11 +289,14 @@ def func2(c=str(a.get())):
     for i in range(len(S2_array)):
         for j in range(len(S2_array)):
             if j > i:
-                F_obs_gold.append(S2_array[j]/S2_array[i])
+                F_obs_gold.append(S2_array[j] / S2_array[i])
     # F_obs_gold = S2_array[0] / S2_array[1]
     F_crit_gold = np.abs(f.ppf(confidence, dof, dof))
-    print("F-crit =", F_crit_gold, "F-obs =", F_obs_gold)
+    # print("F-crit =", F_crit_gold, "F-obs =", F_obs_gold)
 
+
+def func3():
+    df, df2, y, x, x_pred, model, model_sk, y_pred, y_av, p, dof, confidence, x_new = func0()
     # 3. a) According to the table, construct an empirical regression equation for: a) the power function у=β0*x_1
     # ^(β_1 )*x_2^(β_2 )*ε
     x_ln = np.log(x_new)
@@ -389,6 +430,9 @@ def func2(c=str(a.get())):
     # h) estimate for each of the models the determination coefficient, the average error approximation, and choose
     # the best model.
 
+
+def func4():
+    df, df2, y, x, x_pred, model, model_sk, y_pred, y_av, p, dof, confidence, x_new = func0()
     # 4. 3. According to the table for the time series уt:
     # a) find the equation of the non-random component (trend), assuming the trend is linear;
     index_array = []
@@ -463,16 +507,6 @@ def func2(c=str(a.get())):
 
     # e) find, with confidence 0.95, an interval estimation of the regression coefficient β1, assuming the trend is
     # linear;
-    # y_lin = []
-    # for i in range(0, len(y)):
-    #     y_lin.append(y[i])
-    # for i in y_lin:
-    #     y_lin[i] = y[i]
-    # y_lin = sm.add_constant(y_lin)
-    # y_lint = np.matrix.transpose(y_lin)
-    # mult1_y = np.dot(y_lint, y_lin)
-    # inv_y = np.linalg.inv(mult1_y)
-    # print(inv_y)
     index_arr = sm.add_constant(index_array)
     index_arrayt = np.matrix.transpose(index_arr)
     mult1_y = np.dot(index_arrayt, index_arr)
@@ -498,7 +532,7 @@ def func2(c=str(a.get())):
 
     # g) find a point estimate and with the confidence of 0.95 interval estimation of the forecast of the average
     # (individual) value of the company’s profit at the time t = 11 (eleventh year), assuming the trend is linear;
-    index_array_n = np.array([1, 11])
+    index_array_n = sm.add_constant(df2['INDEX'].to_numpy())
     y_lin_n = model_lt.predict(index_array_n)
 
     mult2_y = np.dot(np.matrix.transpose(index_array_n), inv_y)
@@ -515,20 +549,30 @@ def func2(c=str(a.get())):
     y_pred_lin = model_lt.predict()
     ESS_y = np.sum([(i - y.to_numpy().mean()) ** 2 for i in y_pred_lin])
 
-    f_crit_y = np.abs(f.ppf(confidence, 1, len(y)-2))
-    F_y = (ESS_y / 1) / (RSS / (len(y)-2))
+    f_crit_y = np.abs(f.ppf(confidence, 1, len(y) - 2))
+    F_y = (ESS_y / 1) / (RSS / (len(y) - 2))
 
     # print("f crit:", f_crit_y, "F:", F_y)
 
 
+def func5():
+    os.startfile(str(a.get() + ".xlsx"))
+
+
 # buttons
 new_excel = Button(tsk, text="Create an excel file", command=func1)
-new_excel.place(x=160, y=90)
+new_excel.place(x=10, y=90)
 
-calc_button = Button(tsk, text="*The next button*", command=func2)
-calc_button.place(x=162, y=150)
+open_excelfile = Button(tsk, text="Open the file", command=func5)
+open_excelfile.place(x=160, y=90)
 
-graph = Button(tsk, text="Create a graph")
-graph.place(x=170, y=180)
+calc1_button = Button(tsk, text="Multiple Regression Analysis", command=func2)
+calc1_button.place(x=10, y=150)
+
+calc2_button = Button(tsk, text="Models Comparison", command=func3)
+calc2_button.place(x=265, y=150)
+
+calc3_button = Button(tsk, text="Linear Trend", command=func4)
+calc3_button.place(x=180, y=150)
 
 mainloop()
