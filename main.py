@@ -1,3 +1,5 @@
+import xlsxwriter
+
 import openpyxl as op
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
@@ -133,6 +135,16 @@ def func0():
     return df, df2, y, x, x_pred, model, model_sk, y_pred, y_av, p, dof, confidence, x_new
 
 
+def multiple_dfs(df_list, sheets, file_name, spaces):
+    writer = pd.ExcelWriter(file_name, engine='xlsxwriter')
+    row = 0
+    for dataframe in df_list:
+        dataframe.to_excel(writer, sheet_name=sheets, startrow=row, startcol=0, index=False, header=False)
+        row = row + len(dataframe.index) + spaces + 1
+    writer.save()
+    return None
+
+
 def func2():
     df, df2, y, x, x_pred, model, model_sk, y_pred, y_av, p, dof, confidence, x_new = func0()
 
@@ -235,8 +247,20 @@ def func2():
     # df3 = df3.append({'abc': "Correlation matrix:"}, ignore_index=True)
     # df3 = df3.append({'abc': corr}, ignore_index=True)
     df4 = pd.DataFrame(corr)
-    print(len(df4)+1)
     # df3.to_excel(sh3, startrow=len(df4)+1, startcol=0)
+    # df3.to_excel(filename="adad.xlsx", sheet_name='Results', startrow=len(df4)+1, startcol=0)
+    df_list = [df3, df4]
+    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=1)
+
+    # Creating Excel Writer Object from Pandas
+
+    # writer = pd.ExcelWriter('test.xlsx')
+    # workbook = writer.book
+    # worksheet = workbook.add_worksheet('Validation')
+    # writer.sheets['Validation'] = worksheet
+    # df3.to_excel(writer, index=False, header=False, startrow=0, startcol=0)
+    # df4.to_excel(writer, index=False, header=False, startrow=len(df3)+1, startcol=0)
+
     print(df3, '\n', df4)
 
     # 2. a) apply the Spearman rank correlation test to assess heteroscedasticity at a 5% significance level for
