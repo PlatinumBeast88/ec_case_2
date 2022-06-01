@@ -60,17 +60,17 @@ def func1():
     ws1.title = "Predictions"
     sh2 = wb["Predictions"]
 
-    ws1 = wb.create_sheet("Results", 2)
-    ws1.title = "Results"
-    sh3 = wb["Results"]
-
-    ws1 = wb.create_sheet("Models comparison", 3)
-    ws1.title = "Models comparison"
-    sh4 = wb["Models comparison"]
-
-    ws1 = wb.create_sheet("Linear trend", 4)
-    ws1.title = "Linear trend"
-    sh5 = wb["Linear trend"]
+    # ws1 = wb.create_sheet("Results", 2)
+    # ws1.title = "Results"
+    # sh3 = wb["Results"]
+    #
+    # ws1 = wb.create_sheet("Models comparison", 3)
+    # ws1.title = "Models comparison"
+    # sh4 = wb["Models comparison"]
+    #
+    # ws1 = wb.create_sheet("Linear trend", 4)
+    # ws1.title = "Linear trend"
+    # sh5 = wb["Linear trend"]
 
     wb.save(filename=str(a.get() + ".xlsx"))
 
@@ -94,12 +94,12 @@ def func1():
     for i in range(1, int(b.get()) + 1):
         sh2.cell(column=4 + i, row=2).value = "X" + str(i)
 
-    sh3.cell(column=1, row=1).value = 'Results of multiple regression analysis will appear here after clicking ' \
-                                      '"Multiple Regression Analysis"'
-
-    sh4.cell(column=1, row=1).value = 'Models comparison will appear here after clicking "Models Comparison"'
-
-    sh5.cell(column=1, row=1).value = 'Results on linear trend analysis will appear here after clicking "Linear Trend"'
+    # sh3.cell(column=1, row=1).value = 'Results of multiple regression analysis will appear here after clicking ' \
+    #                                   '"Multiple Regression Analysis"'
+    #
+    # sh4.cell(column=1, row=1).value = 'Models comparison will appear here after clicking "Models Comparison"'
+    #
+    # sh5.cell(column=1, row=1).value = 'Results on linear trend analysis will appear here after clicking "Linear Trend"'
 
     wb.save(filename=str(a.get() + ".xlsx"))
 
@@ -136,12 +136,13 @@ def func0():
 
 
 def multiple_dfs(df_list, sheets, file_name, spaces):
-    writer = pd.ExcelWriter(file_name, engine='xlsxwriter')
+    writer = pd.ExcelWriter(file_name, engine='openpyxl', mode="a")
     row = 0
     for dataframe in df_list:
         dataframe.to_excel(writer, sheet_name=sheets, startrow=row, startcol=0, index=False, header=False)
         row = row + len(dataframe.index) + spaces + 1
     writer.save()
+
 
 
 def func2():
@@ -228,9 +229,9 @@ def func2():
     # e) find determination coefficient and explain its meaning
     r2 = model_sk.score(x, y)
     if r2 > 0.7:
-        res5 = "the model is relevant"
+        res10 = "the model is relevant"
     else:
-        res5 = "the model is hardly relevant"
+        res10 = "the model is hardly relevant"
 
     # f) estimate 95% confidence interval for the average company’s profit, given that X1 = 11, X2 = 8
     x_predt = np.matrix.transpose(x_pred.to_numpy())
@@ -349,7 +350,7 @@ def func2():
         df6 = df6.append({'a': f"T{i} observed =", 'b': b_array[i]}, ignore_index=True)
         df6 = df6.append({'a': None, 'b': res4[i]}, ignore_index=True)
     df7 = pd.DataFrame()
-    df7.insert(0, 'a', ["e) Determination coefficient:", r2, res5])
+    df7.insert(0, 'a', ["e) Determination coefficient:", r2, res10])
     df8 = pd.DataFrame()
     df8.insert(0, 'a', ["f) Confidence interval for the average y", conf1[0],
                         "average y of population will fall within this interval with probability of alpha and "
@@ -380,9 +381,9 @@ def func2():
     df13.insert(0, 'a', ["b) Goldfeld-Quandt test", "F-crit =", F_crit_gold, "F-obs =", F_obs_gold])
     # seems like y variance and x[i] variance should be compared (while i compared x[i] and x[j] values)
 
-    df_list = [df3, df4, df5, df6, df7, df8, df9, df10, df11, df12, df13]
-    # print(df_list)
-    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=0)
+    # df_list = [df3, df4, df5, df6, df7, df8, df9, df10, df11, df12, df13]
+    list_please = [pd.concat([df3, df4, df5, df6, df7, df8, df9, df10, df11, df12, df13], sort=False)]
+    multiple_dfs(list_please, sheets='Results', file_name=str(a.get()+".xlsx"), spaces=0)
 
 
 def func3():
@@ -650,7 +651,7 @@ def func3():
                         None, A0, r20])
 
     df_list = [df3]
-    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=0)
+    multiple_dfs(df_list, sheets='Models comparison', file_name=str(a.get()+".xlsx"), spaces=0)
 
 
 def func4():
@@ -839,9 +840,8 @@ def func4():
     df10 = pd.DataFrame()
     df10.insert(0, 'a', ["h) Significance of pair regression", "F critical:", f_crit_y, "F observed:", F_y, res5])
 
-    df_list = [df3, df4, df5, df6, df7, df8, df9, df10]
-    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=0)
-    print(df_list)
+    list_please = [pd.concat([df3, df4, df5, df6, df7, df8, df9, df10], sort=False)]
+    multiple_dfs(list_please, sheets='Linear trend', file_name=str(a.get() + ".xlsx"), spaces=0)
 
 
 def func5():
