@@ -150,7 +150,7 @@ def func2():
     # a) find a regression equation of Y on Х1 and X2 and explain the meaning of regression coefficients b0, b1, b2
     pr = model.params
     g = str(round((pr[0]), 4))
-    for i in range(0, len(pr)):
+    for i in range(1, len(pr)):
         if pr[i] > 0:
             g += str("+" + str(round((pr[i]), 4)) + "x" + str(i))
         elif pr[i] < 0:
@@ -181,8 +181,10 @@ def func2():
     r2 = model_sk.score(x, y)
     r = math.sqrt(r2)
 
-    if abs(r) > 0.9:
+    if abs(r) > 0.7:
         res1 = "strong connection of arguments and y"
+    elif abs(r) > 0.5:
+        res1 = "medium connection of arguments and y"
     else:
         res1 = "weak connection of arguments and y"
     if r > 0:
@@ -201,7 +203,7 @@ def func2():
     if F < f_crit:
         res3 = "null hypothesis (variance x = variance y) is accepted; arguments influence is not significant"
     else:
-        res3 = "null hypothesis (variance x = variance y) is rejected; arguments influence not significant"
+        res3 = "null hypothesis (variance x = variance y) is rejected; arguments influence is significant"
 
     # d) estimate the significance of regression coefficients b0, b1, b2 by t-statistics at level α=0.05
     t_crit = np.abs(t.ppf((1 - confidence) / 2, dof))
@@ -218,13 +220,17 @@ def func2():
     res4 = []
     for i in range(0, len(b_array)):
         if b_array[i] < t_crit:
-            res4.append(f"null hypothesis (β{i} = 0) is accepted")
+            res4.append(f"null hypothesis (β{i} = 0) is accepted; β{i} is not significant")
         else:
-            res4.append(f"null hypothesis (β{i} = 0) is rejected")
+            res4.append(f"null hypothesis (β{i} = 0) is rejected, β{i} is significant")
     # print(b_array)
 
     # e) find determination coefficient and explain its meaning
     r2 = model_sk.score(x, y)
+    if r2 > 0.7:
+        res5 = "the model is relevant"
+    else:
+        res5 = "the model is hardly relevant"
 
     # f) estimate 95% confidence interval for the average company’s profit, given that X1 = 11, X2 = 8
     x_predt = np.matrix.transpose(x_pred.to_numpy())
@@ -257,25 +263,6 @@ def func2():
     chi2_2 = np.abs(chi2.ppf((1 - confidence) / 2, dof))
     conf4 = np.array([S2 * dof / chi2_1, S2 * dof / chi2_2])
     # print(conf4)
-
-    df3 = pd.DataFrame()
-    df3.insert(0, 'a', ["a) Regression equation:", g, None, "b) Correlation coefficient:", r, res1, res2,
-                        "Correlation matrix:"])
-    df4 = pd.DataFrame(corr)
-    df5 = pd.DataFrame()
-    df5.insert(0, 'a', ["c) F-statistics:", "F critical =", "F observed =", None])
-    df5.insert(1, 'b', [None, f_crit, F, res3])
-    df6 = pd.DataFrame()
-    df6.insert(0, 'a', ["d) T-statistics:"])
-    df6.insert(1, 'b', [None])
-    for i in range(0, len(b_array)):
-        df6.append({'a': f"T{i} observed ="}, ignore_index=True)
-        df6.append({'a': None}, ignore_index=True)
-        df6.append({'b': b_array[i]}, ignore_index=True)
-        df6.append({'b': res4[i]}, ignore_index=True)
-    df_list = [df3, df4, df5, '\n', df6]
-    print(df_list)
-    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=0)
 
     # Creating Excel Writer Object from Pandas
 
@@ -327,6 +314,13 @@ def func2():
         t_obs_xe.append(r_xe[i] * math.sqrt(len(y) - 2) / math.sqrt(1 - r_xe[i] ** 2))
     # print(t_obs_xe)
 
+    res5 = []
+    for i in range(0, len(t_obs_xe)):
+        if t_obs_xe[i] < t_crit:
+            res5.append("homoscedasticity")
+        else:
+            res5.append("heteroscedasticity")
+
     # b) apply the Goldfeld-Quandt test to assess heteroscedasticity at a 5% significance level for both x1 and x2
     S2_array = []
     for i in range(0, int(b.get())):
@@ -340,6 +334,55 @@ def func2():
     # F_obs_gold = S2_array[0] / S2_array[1]
     F_crit_gold = np.abs(f.ppf(confidence, dof, dof))
     # print("F-crit =", F_crit_gold, "F-obs =", F_obs_gold)
+
+    df3 = pd.DataFrame()
+    df3.insert(0, 'a', ["a) Regression equation:", g, None, "b) Correlation coefficient:", r, res1, res2,
+                        "Correlation matrix:"])
+    df4 = pd.DataFrame(corr)
+    df5 = pd.DataFrame()
+    df5.insert(0, 'a', ["c) F-statistics:", "F critical =", "F observed =", None])
+    df5.insert(1, 'b', [None, f_crit, F, res3])
+    df6 = pd.DataFrame()
+    df6.insert(0, 'a', ["d) T-statistics:"])
+    df6.insert(1, 'b', [None])
+    for i in range(0, len(b_array)):
+        df6 = df6.append({'a': f"T{i} observed =", 'b': b_array[i]}, ignore_index=True)
+        df6 = df6.append({'a': None, 'b': res4[i]}, ignore_index=True)
+    df7 = pd.DataFrame()
+    df7.insert(0, 'a', ["e) Determination coefficient:", r2, res5])
+    df8 = pd.DataFrame()
+    df8.insert(0, 'a', ["f) Confidence interval for the average y", conf1[0],
+                        "average y of population will fall within this interval with probability of alpha and "
+                        "additional conditions"])
+    df8.insert(1, 'b', [None, conf1[1], None])
+    df9 = pd.DataFrame()
+    df9.insert(0, 'a', ["g) Confidence interval for the individual value of the number of y:", conf2[0],
+                        "individual y of population will fall within this interval with probability of alpha and "
+                        "additional conditions"])
+    df9.insert(1, 'b', [None, conf2[1], None])
+    df10 = pd.DataFrame()
+    df10.insert(0, 'a', ["h) Interval estimators for regression coefficients"])
+    df10.insert(1, 'b', [None])
+    for i in range(0, len(conf3)):
+        df10.append({'a': f"Interval estimator for regression coefficient β{i} =", 'b': None}, ignore_index=True)
+        df10.append({'a': conf3[i][0], 'b': conf3[i][1]}, ignore_index=True)
+    df11 = pd.DataFrame()
+    df11.insert(0, 'a', ["i) Interval estimator for the error’s variance:", conf4[0],
+                         "true value of the variance of the population is within this interval with 95% probability"])
+    df11.insert(1, 'b', [None, conf4[1], None])
+
+    df12 = pd.DataFrame()
+    df12.insert(0, 'a', ["2. a) Spearman rank correlation test", "T critical ="])
+    df12.insert(1, 'b', [None, t_crit])
+    for i in range(0, len(t_obs_xe)):
+        df12 = df12.append({'a': t_obs_xe[i], 'b': res5[i]}, ignore_index=True)
+    df13 = pd.DataFrame()
+    df13.insert(0, 'a', ["b) Goldfeld-Quandt test", "F-crit =", F_crit_gold, "F-obs =", F_obs_gold])
+    # seems like y variance and x[i] variance should be compared (while i compared x[i] and x[j] values)
+
+    df_list = [df3, df4, df5, df6, df7, df8, df9, df10, df11, df12, df13]
+    # print(df_list)
+    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=0)
 
 
 def func3():
@@ -361,6 +404,21 @@ def func3():
             g1 += str("*" + "x" + str(i) + "^(" + str(round((pr_power[i]), 4)) + ")")
         elif pr_power[i] == 0:
             g1 = g1
+    # print(g1)
+    # print(pr_power)
+    err_pr = []
+    yyy = np.zeros(len(y))
+    for i in range(0, len(y)):
+        yyy[i] = pr_power[0]
+        for j in range(0, int(b.get())):
+            yyy[i] = yyy[i]*x_new[i, j]**pr_power[j+1]
+    for i in range(0, len(y)):
+        err_pr.append(np.subtract(yyy[i], y[i]))
+    sum_pr = np.zeros(len(y))
+    for i in range(0, len(y)):
+        sum_pr[i] = abs(err_pr[i]/y[i])
+    A1 = sum(sum_pr)/len(sum_pr)
+    r21 = LinearRegression().fit(x_ln, y_ln).score(x_ln, y_ln)
 
     # print("power model:", g1)
 
@@ -384,6 +442,15 @@ def func3():
         elif pr_hyp[i] == 0:
             g2 = g2
 
+    err_hyp = []
+    for i in range(0, len(y)):
+        err_hyp.append(np.subtract(model_hyperbola.predict()[i], y[i]))
+    sum_hyp = np.zeros(len(y))
+    for i in range(0, len(y)):
+        sum_hyp[i] = abs(err_hyp[i] / y[i])
+    A2 = sum(sum_hyp) / len(sum_hyp)
+    r22 = LinearRegression().fit(x_hyp, y).score(x_hyp, y)
+
     # print("hyperbolic:", g2)
 
     # c) the exponential function у = β0 * е ^ (β_1 x_1+β_2 x_2) * ε;
@@ -399,6 +466,26 @@ def func3():
         elif pr_exp1[i] == 0:
             g3 = g3
     g3 = g3 + ")"
+
+    err_exp1 = []
+    yyy_exp1 = np.zeros(len(y))
+
+    power = np.zeros(len(y))
+    for i in range(0, len(y)):
+        for j in range(0, int(b.get())):
+            power[i] += x_new[i, j] * pr_exp1[j + 1]
+
+    for i in range(0, len(y)):
+        yyy_exp1[i] = pr_exp1[0]*math.exp(power[i])
+
+    for i in range(0, len(y)):
+        err_exp1.append(np.subtract(yyy_exp1[i], y[i]))
+
+    sum_exp1 = np.zeros(len(y))
+    for i in range(0, len(y)):
+        sum_exp1[i] = abs(err_exp1[i] / y[i])
+    A3 = sum(sum_exp1) / len(sum_exp1)
+    r23 = LinearRegression().fit(x, y_ln).score(x, y_ln)
     # print("exponential model 1:", g3)
 
     # d) the semi - logarithmic function у = β 0 + β1lnx1 + β2lnx2 + ε;
@@ -412,6 +499,15 @@ def func3():
             g4 += str(str(round((pr_log[i]), 4)) + "lnx" + str(i))
         elif pr_log[i] == 0:
             g4 = g4
+
+    err_log = []
+    for i in range(0, len(y)):
+        err_log.append(np.subtract(model_log.predict()[i], y[i]))
+    sum_log = np.zeros(len(y))
+    for i in range(0, len(y)):
+        sum_log[i] = abs(err_log[i] / y[i])
+    A4 = sum(sum_log) / len(sum_log)
+    r24 = LinearRegression().fit(x_ln, y).score(x_ln, y)
     # print("semi-logarithmic model:", g4)
 
     # e) the inverse function у = 1 / (β0 + β1x1 + β2x2 + ε);
@@ -432,6 +528,27 @@ def func3():
         elif pr_inv[i] == 0:
             g5 = g5
     g5 = g5 + ")"
+
+    err_inv = []
+    yyy_inv = np.zeros(len(y))
+
+    denom = np.zeros(len(y))
+    for i in range(0, len(y)):
+        denom[i] = pr_inv[0]
+        for j in range(0, int(b.get())):
+            denom[i] += x_new[i, j] * pr_inv[j + 1]
+
+    for i in range(0, len(y)):
+        yyy_inv[i] = 1/denom[i]
+
+    for i in range(0, len(y)):
+        err_inv.append(np.subtract(yyy_inv[i], y[i]))
+
+    sum_inv = np.zeros(len(y))
+    for i in range(0, len(y)):
+        sum_inv[i] = abs(err_inv[i] / y[i])
+    A5 = sum(sum_inv) / len(sum_inv)
+    r25 = LinearRegression().fit(x, y_hyp).score(x, y_hyp)
 
     # print("inverse model:", g5)
 
@@ -457,6 +574,15 @@ def func3():
             g6 = g6
     g6 = g6 + ")"
 
+    err_sqrt = []
+    for i in range(0, len(y)):
+        err_sqrt.append(np.subtract(model_sqrt.predict()[i], y[i]))
+    sum_sqrt = np.zeros(len(y))
+    for i in range(0, len(y)):
+        sum_sqrt[i] = abs(err_sqrt[i] / y[i])
+    A6 = sum(sum_sqrt) / len(sum_sqrt)
+    r26 = LinearRegression().fit(x_sqrt, y).score(x_sqrt, y)
+
     # print("sqrt model:", g6)
 
     # g) the exponential function у = β0β_1 ^ (x_1) β_2 ^ (x_2) * ε;
@@ -472,10 +598,59 @@ def func3():
         elif pr_exp2[i] == 0:
             g7 = g7
 
+    err_exp2 = []
+    yyy_exp2 = np.zeros(len(y))
+    for i in range(0, len(y)):
+        yyy_exp2[i] = pr_exp2[0]
+        for j in range(0, int(b.get())):
+            yyy_exp2[i] = yyy_exp2[i] * pr_exp2[j + 1]**x_new[i, j]
+    for i in range(0, len(y)):
+        err_exp2.append(np.subtract(yyy_exp2[i], y[i]))
+    sum_exp2 = np.zeros(len(y))
+    for i in range(0, len(y)):
+        sum_exp2[i] = abs(err_exp2[i] / y[i])
+    A7 = sum(sum_exp2) / len(sum_exp2)
+    r27 = LinearRegression().fit(x, y_ln).score(x, y_ln)
+
     # print("exponential model 2:", g7)
 
     # h) estimate for each of the models the determination coefficient, the average error approximation, and choose
     # the best model.
+    err_ = []
+    for i in range(0, len(y)):
+        err_.append(np.subtract(model.predict()[i], y[i]))
+    sum_ = np.zeros(len(y))
+    for i in range(0, len(y)):
+        sum_[i] = abs(err_[i] / y[i])
+    A0 = sum(sum_) / len(sum_)
+    r20 = model_sk.score(x, y)
+
+    A_array = [A1, A2, A3, A4, A5, A6, A7, A0]
+    max_A = max(A_array)
+    r2_array = [r21, r22, r23, r24, r25, r26, r27, r20]
+    max_r2 = max(r2_array)
+
+    df3 = pd.DataFrame()
+    df3.insert(0, 'a', ["a) the power function у=β0*x_1^(β_1 )*x_2^(β_2 )*ε]", g1, "Average error approximation =",
+               "R2 =", None, "b) the equilateral hyperbola у = β0 + β1 / x1 + β2 / x2 + ε", g2,
+                        "Average error approximation =", "R2 =", None,
+                        "c) the exponential function у = β0 * е ^ (β_1 x_1+β_2 x_2) * ε", g3,
+                        "Average error approximation =", "R2 =", None,
+                        "d) the semi - logarithmic function у = β 0 + β1lnx1 + β2lnx2 + ε", g4,
+                        "Average error approximation =", "R2 =", None,
+                        "e) the inverse function у = 1 / (β0 + β1x1 + β2x2 + ε)", g5,
+                        "Average error approximation =", "R2 =", None,
+                        "f) the function у = β0 + β1√(x_1) + β2√(x_2) + ε", g6,
+                        "Average error approximation =", "R2 =", None,
+                        "g) the exponential function у = β0β_1 ^ (x_1) β_2 ^ (x_2) * ε", g7,
+                        "Average error approximation =", "R2 =", None,
+                        "h) initial model", "Average error approximation =", "R2 ="])
+    df3.insert(1, 'b', [None, None, A1, r21, None, None, None, A2, r22, None, None, None, A3, r23, None, None, None, A4,
+                        r24, None, None, None, A5, r25, None, None, None, A6, r26, None, None, None, A7, r27, None,
+                        None, A0, r20])
+
+    df_list = [df3]
+    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=0)
 
 
 def func4():
@@ -487,6 +662,26 @@ def func4():
         index_array.append(i + 1)
 
     model_lt = sm.OLS(y.to_numpy(), sm.add_constant(index_array)).fit()
+    pr = model_lt.params
+    g = str(round((pr[0]), 4))
+    for i in range(1, len(pr)):
+        if pr[i] > 0:
+            g += str("+" + str(round((pr[i]), 4)) + "x" + str(i))
+        elif pr[i] < 0:
+            g += str(str(round((pr[i]), 4)) + "x" + str(i))
+        elif pr[i] == 0:
+            g = g
+    rsq = model_lt.rsquared
+    if abs(rsq) > 0.7:
+        res1 = "strong connection"
+    elif abs(rsq) > 0.5:
+        res1 = "medium connection"
+    else:
+        res1 = "weak connection"
+    if rsq > 0:
+        res2 = "mutual direction"
+    else:
+        res2 = "opposite direction"
     # print(model_lt.params, model_lt.rsquared)
 
     # b) identify, at the significance level 0.05, the presence of autocorrelation of errors using the Durbin-Watson
@@ -575,15 +770,25 @@ def func4():
     T0_y = abs(model_lt.params[0]) / varb0_y
     T1_y = abs(model_lt.params[1]) / varb1_y
 
+    if T0_y < t_crit_y:
+        res3 = "null hypothesis (β0 = 0) is accepted; β0 is not significant"
+    else:
+        res3 = "null hypothesis (β0 = 0) is accepted; β0 is significant"
+
+    if T1_y < t_crit_y:
+        res4 = "null hypothesis (β1 = 0) is accepted; β1 is not significant"
+    else:
+        res4 = "null hypothesis (β1 = 0) is accepted; β1 is significant"
+
     # print("t crit:", t_crit_y, "T0:", T0_y, "T1:", T1_y)
 
     # g) find a point estimate and with the confidence of 0.95 interval estimation of the forecast of the average
     # (individual) value of the company’s profit at the time t = 11 (eleventh year), assuming the trend is linear;
-    index_array_n = sm.add_constant(df2['INDEX'].to_numpy())
+    index_array_n = sm.add_constant(df2['INDEX'].to_numpy(), has_constant='add')
     y_lin_n = model_lt.predict(index_array_n)
 
-    mult2_y = np.dot(np.matrix.transpose(index_array_n), inv_y)
-    mult3_y = np.dot(mult2_y, index_array_n)
+    mult2_y = np.dot(index_array_n, inv_y)
+    mult3_y = np.dot(mult2_y, np.matrix.transpose(index_array_n))
 
     conf1_y = np.array([y_lin_n[0] - t_crit_y * math.sqrt(ss2 * mult3_y),
                         y_lin_n[0] + t_crit_y * math.sqrt(ss2 * mult3_y)])
@@ -599,7 +804,44 @@ def func4():
     f_crit_y = np.abs(f.ppf(confidence, 1, len(y) - 2))
     F_y = (ESS_y / 1) / (RSS / (len(y) - 2))
 
+    if F_y < f_crit_y:
+        res5 = "null hypothesis (variance x = variance y) is accepted; influence is not significant"
+    else:
+        res5 = "null hypothesis (variance x = variance y) is rejected; influence is significant"
+
     # print("f crit:", f_crit_y, "F:", F_y)
+    df3 = pd.DataFrame()
+    df3.insert(0, 'a', ["a) Regression equation:", g, "Correlation coefficient:", rsq, res1, res2, None,
+                        "b) Durbin-Watson criterion", durb_wats, None])
+    df4 = pd.DataFrame()
+    df4.insert(0, 'a', ["c) Interval estimator for the error’s variance:", conf_linear[0],
+                        "true value of the variance of the population is within this interval with 95% probability"])
+    df4.insert(1, 'b', [None, conf_linear[1], None])
+    df5 = pd.DataFrame()
+    df5.insert(0, 'a', ["d) find the autocorrelation coefficient (for the lag τ=1,2,3)", correl_1, correl_2, correl_3])
+    df6 = pd.DataFrame()
+    df6.insert(0, 'a', ["e) Interval estimator for regression coefficient β0:", confb0_y[0],
+                        "Interval estimator for regression coefficient β1:", confb1_y[0]])
+    df6.insert(1, 'b', [None, confb0_y[1], None, confb1_y[1]])
+    df7 = pd.DataFrame()
+    df7.insert(0, 'a', ["f) Significance of regression coefficients", "T critical:", t_crit_y, "T0:", T0_y, res3, "T1:",
+                        T1_y, res4])
+    df8 = pd.DataFrame()
+    df8.insert(0, 'a', ["g) Confidence interval for the average y", conf1_y[0],
+                        "average y of population will fall within this interval with probability of alpha and "
+                        "additional conditions"])
+    df8.insert(1, 'b', [None, conf1_y[1], None])
+    df9 = pd.DataFrame()
+    df9.insert(0, 'a', ["Confidence interval for the individual value of the number of y:", conf2_y[0],
+                        "individual y of population will fall within this interval with probability of alpha and "
+                        "additional conditions"])
+    df9.insert(1, 'b', [None, conf2_y[1], None])
+    df10 = pd.DataFrame()
+    df10.insert(0, 'a', ["h) Significance of pair regression", "F critical:", f_crit_y, "F observed:", F_y, res5])
+
+    df_list = [df3, df4, df5, df6, df7, df8, df9, df10]
+    multiple_dfs(df_list, sheets='Sheet', file_name="test.xlsx", spaces=0)
+    print(df_list)
 
 
 def func5():
